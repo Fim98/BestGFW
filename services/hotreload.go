@@ -21,6 +21,9 @@ type getInbound interface {
 }
 
 func (c *CoreService) HotReloadUsers() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	log.Println("[HotReload] Attempting to hot-reload users into memory...")
 
 	// 1. Fetch current users from database dynamically just like BuildUsers

@@ -28,6 +28,7 @@ import (
 )
 
 type CoreService struct {
+	mu             sync.Mutex
 	ConfigContent  []byte
 	instance       *box.Box            // Singbox instance
 	xrayInstance   *xray_core.Instance // Xray instance
@@ -54,6 +55,9 @@ func NewCoreService() *CoreService {
 }
 
 func (c *CoreService) Refresh() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	var s models.Setting
 	database.DB.Where("key = ?", "server").Limit(1).Find(&s)
 
@@ -77,6 +81,7 @@ func (c *CoreService) Refresh() error {
 	}
 
 	if templateName == "" {
+		c.ConfigContent = nil
 		return nil
 	}
 
@@ -95,6 +100,8 @@ func (c *CoreService) Refresh() error {
 }
 
 func (c *CoreService) IsRunning() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.CurrentEngine == "xray" {
 		return c.xrayInstance != nil
 	}
@@ -102,32 +109,55 @@ func (c *CoreService) IsRunning() bool {
 }
 
 func (c *CoreService) Kill() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.killLocked(false)
+	return nil
+}
+
+// Reset stops the core and clears in-memory config so background tasks cannot restart it.
+func (c *CoreService) Reset() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.killLocked(true)
+	return nil
+}
+
+func (c *CoreService) killLocked(clearState bool) {
 	if c.cancel != nil {
 		c.cancel()
 		c.cancel = nil
 	}
-	// Kill Singbox
 	if c.instance != nil {
 		c.instance.Close()
 		c.instance = nil
 	}
-	// Kill Xray
 	if c.xrayInstance != nil {
 		c.xrayInstance.Close()
 		c.xrayInstance = nil
 	}
-	c.tracker = nil // Reset tracker
+	c.tracker = nil
+	c.TrafficManager = nil
+
+	if clearState {
+		c.ConfigContent = nil
+		c.UserLimits = nil
+		c.CurrentEngine = "singbox"
+		c.XrayStats = nil
+	}
 
 	time.Sleep(1 * time.Second)
-	return nil
 }
 
 func (c *CoreService) Start() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	log.Println("start engine:", c.CurrentEngine)
 	if len(c.ConfigContent) == 0 {
 		return nil
 	}
-	c.Kill()
+	c.killLocked(false)
 
 	if c.CurrentEngine == "xray" {
 		// Parse JSON config to Xray Core Config
@@ -347,7 +377,7 @@ func (c *CoreService) Start() error {
 	instance.Router().AppendTracker(tracker)
 
 	if err := instance.Start(); err != nil {
-		c.Kill()
+		c.killLocked(false)
 		log.Println("Failed to start singbox:", err)
 		return err
 	}

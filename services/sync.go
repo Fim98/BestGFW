@@ -59,6 +59,11 @@ func StartSyncLoop() {
 		}
 
 		if change {
+			var inited models.Setting
+			if database.DB.Where("key = ?", "inited").Limit(1).Find(&inited).RowsAffected == 0 {
+				continue
+			}
+
 			core := NewCoreService()
 			if err := core.Refresh(); err != nil {
 				log.Println("[Sync] Refresh failed, skipping Start:", err)

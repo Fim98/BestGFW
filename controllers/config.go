@@ -112,7 +112,7 @@ func ResetConfig(c *gin.Context) {
 	database.DB.Exec("DELETE FROM users") // SQLite doesn't have TRUNCATE
 
 	core := services.NewCoreService()
-	core.Kill()
+	core.Reset()
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
