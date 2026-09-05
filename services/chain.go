@@ -93,6 +93,39 @@ func ChainOutbound() map[string]interface{} {
 	return BuildSingboxChainOutbound(server, host, uuid)
 }
 
+// GetChainPort 返回链式入站端口（默认 8443），0 表示配置非法。
+func GetChainPort() int {
+	var s models.Setting
+	database.DB.Where("key = ?", "chain_port").Limit(1).Find(&s)
+	if len(s.Value) == 0 {
+		return 8443
+	}
+	var port int
+	if err := json.Unmarshal(s.Value, &port); err != nil || port <= 0 || port > 65535 {
+		return 8443
+	}
+	return port
+}
+
+// ServerPort 从 server 配置中解析监听端口。
+func ServerPort(server map[string]interface{}) int {
+	switch v := server["listen_port"].(type) {
+	case float64:
+		return int(v)
+	case int:
+		return v
+	}
+	return 0
+}
+
+// cloneMap 深拷贝配置 map，避免链式入站与主入站相互影响。
+func cloneMap(m map[string]interface{}) map[string]interface{} {
+	b, _ := json.Marshal(m)
+	var out map[string]interface{}
+	json.Unmarshal(b, &out)
+	return out
+}
+
 func chainPort(server map[string]interface{}) int {
 	switch v := server["listen_port"].(type) {
 	case float64:

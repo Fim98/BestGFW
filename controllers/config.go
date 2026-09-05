@@ -81,6 +81,16 @@ func GetConfigs(c *gin.Context) {
 		json.Unmarshal(chainSetting.Value, &chainLinkID)
 	}
 
+	var chainPort int
+	var chainPortSetting models.Setting
+	database.DB.Where("key = ?", "chain_port").Limit(1).Find(&chainPortSetting)
+	if len(chainPortSetting.Value) > 0 {
+		json.Unmarshal(chainPortSetting.Value, &chainPort)
+	}
+	if chainPort <= 0 {
+		chainPort = services.GetChainPort()
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"server":            serverObj,
 		"title":             title,
@@ -94,6 +104,7 @@ func GetConfigs(c *gin.Context) {
 		"bind_domain":       bindDomain,
 		"preferred_address": preferredAddress,
 		"chain_link_id":     chainLinkID,
+		"chain_port":        chainPort,
 	})
 }
 
@@ -104,7 +115,7 @@ func UpdateConfig(c *gin.Context) {
 		return
 	}
 
-	allowed := []string{"username", "password", "title", "warp_enabled", "bind_domain", "preferred_address", "chain_link_id"}
+	allowed := []string{"username", "password", "title", "warp_enabled", "bind_domain", "preferred_address", "chain_link_id", "chain_port"}
 	for _, key := range allowed {
 		if val, ok := payload[key]; ok {
 			if key == "bind_domain" || key == "preferred_address" {

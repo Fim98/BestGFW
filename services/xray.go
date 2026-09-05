@@ -204,11 +204,10 @@ func (c *CoreService) refreshXray(server map[string]interface{}, templateName st
 		json.Unmarshal(warpEnabledSetting.Value, &warpEnabled)
 	}
 
-	// 链式出站：绑定了远端节点时作为默认出口，优先级高于 WARP
-	if chainOb := ChainOutbound(); chainOb != nil {
-		log.Println("[Chain] inbound traffic will exit via chained node")
-		outbounds = append(outbounds, chainOb, map[string]interface{}{"protocol": "freedom"})
-	} else if warpEnabled {
+	// 链式出站对象：由独立的链式入站（chain-in）经路由规则使用，
+	// 默认出站保持 freedom/WARP，直连节点的出口不受影响
+	chainOb := ChainOutbound()
+	if warpEnabled {
 		var warpAccountSetting models.Setting
 		var warpAccount *WarpAccount
 
@@ -263,6 +262,31 @@ func (c *CoreService) refreshXray(server map[string]interface{}, templateName st
 	} else {
 		outbounds = append(outbounds, map[string]interface{}{"protocol": "freedom"})
 	}
+	if chainOb != nil {
+		outbounds = append(outbounds, chainOb)
+	}
+
+	// 链式入站：复制主入站配置，仅监听独立端口；路由规则把该入站的流量指向 chain 出站
+	inbounds := []interface{}{inbound}
+	routing := map[string]interface{}{}
+	if chainOb != nil {
+		chainPort := GetChainPort()
+		if chainPort > 0 && chainPort != port {
+			chainInbound := cloneMap(inbound)
+			chainInbound["tag"] = "chain-in"
+			chainInbound["port"] = chainPort
+			inbounds = append(inbounds, chainInbound)
+			routing = map[string]interface{}{
+				"rules": []interface{}{map[string]interface{}{
+					"inboundTag":  []string{"chain-in"},
+					"outboundTag": "chain",
+				}},
+			}
+			log.Printf("[Chain] chained inbound listening on %d, traffic exits via chained node", chainPort)
+		} else {
+			log.Println("[Chain] chain port conflicts with main port, chained inbound disabled")
+		}
+	}
 
 	config := map[string]interface{}{
 		"log": map[string]interface{}{
@@ -270,8 +294,11 @@ func (c *CoreService) refreshXray(server map[string]interface{}, templateName st
 		},
 		"stats":     stats,
 		"policy":    policy,
-		"inbounds":  []interface{}{inbound},
+		"inbounds":  inbounds,
 		"outbounds": outbounds,
+	}
+	if len(routing) > 0 {
+		config["routing"] = routing
 	}
 
 	data, _ := json.MarshalIndent(config, "", "  ")

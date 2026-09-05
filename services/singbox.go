@@ -84,11 +84,10 @@ func (c *CoreService) refreshSingbox(server map[string]interface{}, templateName
 		json.Unmarshal(warpEnabledSetting.Value, &warpEnabled)
 	}
 
-	// 链式出站：绑定了远端节点时作为默认出口，优先级高于 WARP
-	if chainOb := ChainOutbound(); chainOb != nil {
-		log.Println("[Chain] inbound traffic will exit via chained node")
-		outbounds = append(outbounds, chainOb, map[string]interface{}{"type": "direct", "tag": "direct"})
-	} else if warpEnabled {
+	// 链式出站对象：由独立的链式入站（chain-in）经路由规则使用，
+	// 默认出站保持 direct/WARP，直连节点的出口不受影响
+	chainOb := ChainOutbound()
+	if warpEnabled {
 		var warpAccountSetting models.Setting
 		var warpAccount *WarpAccount
 
@@ -137,15 +136,44 @@ func (c *CoreService) refreshSingbox(server map[string]interface{}, templateName
 	} else {
 		outbounds = append(outbounds, map[string]interface{}{"type": "direct", "tag": "direct"})
 	}
+	if chainOb != nil {
+		outbounds = append(outbounds, chainOb)
+	}
+
+	// 链式入站：复制主入站配置，仅监听独立端口；路由规则把该入站的流量指向 chain 出站
+	server["tag"] = "inbound"
+	inbounds := []map[string]interface{}{server}
+	route := map[string]interface{}{}
+	if chainOb != nil {
+		chainPort := GetChainPort()
+		if mainPort := ServerPort(server); chainPort > 0 && chainPort != mainPort {
+			chainInbound := cloneMap(server)
+			chainInbound["tag"] = "chain-in"
+			chainInbound["listen_port"] = chainPort
+			inbounds = append(inbounds, chainInbound)
+			route = map[string]interface{}{
+				"rules": []map[string]interface{}{
+					{"inbound": []string{"chain-in"}, "outbound": "chain"},
+				},
+				"final": "direct",
+			}
+			log.Printf("[Chain] chained inbound listening on %d, traffic exits via chained node", chainPort)
+		} else {
+			log.Println("[Chain] chain port conflicts with main port, chained inbound disabled")
+		}
+	}
 
 	config := map[string]interface{}{
-		"inbounds":  []map[string]interface{}{server},
+		"inbounds":  inbounds,
 		"outbounds": outbounds,
 		"experimental": map[string]interface{}{
 			"clash_api": map[string]interface{}{
 				"external_controller": "127.0.0.1:0",
 			},
 		},
+	}
+	if len(route) > 0 {
+		config["route"] = route
 	}
 
 	data, _ := json.MarshalIndent(config, "", "  ")

@@ -98,5 +98,5 @@
   "preferred_address_hint": "Only replaces the client connect address; SNI still uses the bound domain.",
   "chain_set_outbound": "Set as outbound",
   "chain_outbound": "Outbound",
-  "chain_outbound_desc": "Set a connected node as the outbound and the subscription automatically gains a chained \"this site → node\" entry: clients connect to this server while traffic exits from that node."
+  "chain_outbound_desc": "Set a connected node as the outbound and the subscription automatically gains a chained \"this site → node\" entry: it uses a dedicated inbound port (default 8443, allow it in your firewall/security group), traffic entering that port exits from that node, while direct nodes are unaffected."
 }
