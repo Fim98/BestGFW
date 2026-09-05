@@ -47,7 +47,7 @@ The system comes with the following out-of-the-box configuration templates to me
 Automatically install Docker and deploy the FreeGFW container. It will show the server IP upon successful deployment.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/haradakashiwa/freegfw/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Fim98/BestGFW/main/install.sh | bash
 ```
 
 ### System Service Installation (Systemd)
@@ -55,7 +55,7 @@ curl -fsSL https://raw.githubusercontent.com/haradakashiwa/freegfw/main/install.
 Install directly on the host machine as a Systemd service (without Docker).
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/haradakashiwa/freegfw/main/install-systemd.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Fim98/BestGFW/main/install-systemd.sh | bash
 ```
 
 ### Docker Deployment
@@ -63,7 +63,7 @@ curl -fsSL https://raw.githubusercontent.com/haradakashiwa/freegfw/main/install-
 ```bash
 docker run -d --name freegfw --network=host \
   -v "freegfw:/data" \
-  ghcr.io/haradakashiwa/freegfw
+  ghcr.io/fim98/bestgfw
 ```
 
 ## 📝 Configuration

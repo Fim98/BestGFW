@@ -47,7 +47,7 @@ FreeGFW 的目标是提供一个简单易用、功能强大的代理服务管理
 自动安装 Docker 并部署 FreeGFW 容器，部署完成后会显示管理地址。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/haradakashiwa/freegfw/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Fim98/BestGFW/main/install.sh | bash
 ```
 
 ### 系统服务安装 (Systemd)
@@ -55,7 +55,7 @@ curl -fsSL https://raw.githubusercontent.com/haradakashiwa/freegfw/main/install.
 直接在宿主机上安装为 Systemd 服务（不依赖 Docker）。
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/haradakashiwa/freegfw/main/install-systemd.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Fim98/BestGFW/main/install-systemd.sh | bash
 ```
 
 ### Docker 部署
@@ -63,7 +63,7 @@ curl -fsSL https://raw.githubusercontent.com/haradakashiwa/freegfw/main/install-
 ```bash
 docker run -d --name freegfw --network=host \
   -v "freegfw:/data" \
-  ghcr.io/haradakashiwa/freegfw
+  ghcr.io/fim98/bestgfw
 ```
 
 ## 📝 配置说明

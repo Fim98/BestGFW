@@ -34,7 +34,7 @@ echo -e "${YELLOW}Deploying FreeGFW...${NC}"
 
 # Pull the latest image
 echo -e "${YELLOW}Pulling the latest FreeGFW image...${NC}"
-docker pull ghcr.io/haradakashiwa/freegfw
+docker pull ghcr.io/fim98/bestgfw
 
 # Remove existing container if it exists
 if docker ps -a --format '{{.Names}}' | grep -q "^freegfw$"; then
@@ -45,7 +45,7 @@ fi
 docker run -d --name freegfw --network=host \
   --restart unless-stopped \
   -v "freegfw:/data" \
-  ghcr.io/haradakashiwa/freegfw
+  ghcr.io/fim98/bestgfw
   
 if [ $? -ne 0 ]; then
     echo -e "${RED}Failed to deploy FreeGFW. Check the Docker error above.${NC}"

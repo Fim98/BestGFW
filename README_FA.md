@@ -47,7 +47,7 @@ FreeGFW یک سیستم مدیریت سرویس پروکسی با کارایی �
 نصب خودکار Docker و استقرار کانتینر FreeGFW. پس از استقرار موفقیت آمیز، IP سرور را نشان می دهد.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/haradakashiwa/freegfw/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Fim98/BestGFW/main/install.sh | bash
 ```
 
 ### نصب سرویس سیستم (Systemd)
@@ -55,7 +55,7 @@ curl -fsSL https://raw.githubusercontent.com/haradakashiwa/freegfw/main/install.
 نصب مستقیم بر روی ماشین میزبان به عنوان یک سرویس Systemd (بدون Docker).
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/haradakashiwa/freegfw/main/install-systemd.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Fim98/BestGFW/main/install-systemd.sh | bash
 ```
 
 ### استقرار با Docker
@@ -63,7 +63,7 @@ curl -fsSL https://raw.githubusercontent.com/haradakashiwa/freegfw/main/install-
 ```bash
 docker run -d --name freegfw --network=host \
   -v "freegfw:/data" \
-  ghcr.io/haradakashiwa/freegfw
+  ghcr.io/fim98/bestgfw
 ```
 
 ## 📝 توضیحات پیکربندی

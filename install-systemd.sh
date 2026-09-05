@@ -37,7 +37,7 @@ fi
 
 # Fetch the latest release tag
 echo -e "${YELLOW}Fetching latest release version...${NC}"
-LATEST_TAG=$(curl -s https://api.github.com/repos/HaradaKashiwa/FreeGFW/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+LATEST_TAG=$(curl -s https://api.github.com/repos/Fim98/BestGFW/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
 if [ -z "$LATEST_TAG" ]; then
     echo -e "${RED}Failed to get the latest release version. Please check your network or GitHub API limits.${NC}"
@@ -47,7 +47,7 @@ fi
 echo -e "${GREEN}Latest version: ${LATEST_TAG}${NC}"
 
 # Download binary
-DOWNLOAD_URL="https://github.com/HaradaKashiwa/FreeGFW/releases/download/${LATEST_TAG}/freegfw-linux-${RELEASE_ARCH}.tar.gz"
+DOWNLOAD_URL="https://github.com/Fim98/BestGFW/releases/download/${LATEST_TAG}/freegfw-linux-${RELEASE_ARCH}.tar.gz"
 echo -e "${YELLOW}Downloading FreeGFW from ${DOWNLOAD_URL}...${NC}"
 
 curl -L -o /tmp/freegfw.tar.gz "$DOWNLOAD_URL"
