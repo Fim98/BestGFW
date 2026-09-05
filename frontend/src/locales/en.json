@@ -89,5 +89,11 @@
   "encrypt_my_connection": "Encrypt My Connection",
   "confirm_skip": "Confirm Skip",
   "config_failed_check_logs": "Configuration failed, please check if domain resolution is correct, or check server logs.",
-  "enable_cloudflare_warp": "Enable Cloudflare WARP"
+  "enable_cloudflare_warp": "Enable Cloudflare WARP",
+  "bind_domain": "Bound Domain",
+  "bind_domain_placeholder": "e.g. panel.example.com",
+  "bind_domain_hint": "Subscription links will use this domain as the node address and SNI. With Cloudflare proxied (orange cloud), set the inbound port to a CF-supported port such as 443; with DNS only (grey cloud) it connects directly to origin.",
+  "preferred_address": "Preferred Address (optional)",
+  "preferred_address_placeholder": "Preferred IP or domain, leave empty to use the bound domain",
+  "preferred_address_hint": "Only replaces the client connect address; SNI still uses the bound domain."
 }

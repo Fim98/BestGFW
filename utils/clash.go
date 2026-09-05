@@ -2,9 +2,10 @@ package utils
 
 import (
 	"fmt"
+	"net"
 )
 
-func ToClashProxy(server map[string]interface{}, ip, port, uuid, title string) map[string]interface{} {
+func ToClashProxy(server map[string]interface{}, ip, port, uuid, title, bindDomain string) map[string]interface{} {
 	serverType, _ := server["type"].(string)
 
 	proxy := map[string]interface{}{
@@ -28,10 +29,6 @@ func ToClashProxy(server map[string]interface{}, ip, port, uuid, title string) m
 
 	if tlsConfig != nil && tlsConfig["enabled"] == true {
 		isTLS = true
-		serverName, _ = tlsConfig["server_name"].(string)
-		if serverName == "" {
-			serverName = ip
-		}
 
 		if reality, ok := tlsConfig["reality"].(map[string]interface{}); ok {
 			if rEnabled, ok := reality["enabled"].(bool); ok && rEnabled {
@@ -44,6 +41,18 @@ func ToClashProxy(server map[string]interface{}, ip, port, uuid, title string) m
 						realitySid = sid
 					}
 				}
+			}
+		}
+
+		serverName, _ = tlsConfig["server_name"].(string)
+		if bindDomain != "" && !isReality {
+			// 绑定域名接入（如 Cloudflare）：SNI 使用绑定域名（Reality 伪装域名除外）
+			serverName = bindDomain
+		} else if serverName == "" || net.ParseIP(serverName) != nil {
+			if bindDomain != "" {
+				serverName = bindDomain
+			} else if serverName == "" {
+				serverName = ip
 			}
 		}
 	}
@@ -67,6 +76,11 @@ func ToClashProxy(server map[string]interface{}, ip, port, uuid, title string) m
 				host = s
 			}
 		}
+	}
+
+	// CDN 接入时 WS 的 Host 头需要是绑定域名
+	if host == "" && bindDomain != "" {
+		host = bindDomain
 	}
 
 	switch serverType {

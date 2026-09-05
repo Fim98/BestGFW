@@ -18,17 +18,27 @@ export function SettingsCard() {
 	const [username, setUsername] = useState('')
 	const [password, setPassword] = useState('')
 	const [warpEnabled, setWarpEnabled] = useState(false)
+	const [bindDomain, setBindDomain] = useState('')
+	const [preferredAddress, setPreferredAddress] = useState('')
 
 	useEffect(() => {
 		if (config) {
 			setUsername(config.username || '')
 			setPassword(config.password || '')
 			setWarpEnabled(!!config.warp_enabled)
+			setBindDomain(config.bind_domain || '')
+			setPreferredAddress(config.preferred_address || '')
 		}
 	}, [config])
 
 	const handleSave = async () => {
-		await updateConfigs({ username, password, warp_enabled: warpEnabled })
+		await updateConfigs({
+			username,
+			password,
+			warp_enabled: warpEnabled,
+			bind_domain: bindDomain.trim(),
+			preferred_address: preferredAddress.trim(),
+		})
 		await reloadConfigs()
 		await refresh()
 	}
@@ -61,6 +71,24 @@ export function SettingsCard() {
 							onChange={e => setPassword(e.target.value)}
 							placeholder={t('admin_password_placeholder')}
 						/>
+					</div>
+					<div>
+						<label className="block text-sm font-medium mb-1">{t('bind_domain')}</label>
+						<Input
+							value={bindDomain}
+							onChange={e => setBindDomain(e.target.value)}
+							placeholder={t('bind_domain_placeholder')}
+						/>
+						<p className="text-xs text-gray-400 mt-1">{t('bind_domain_hint')}</p>
+					</div>
+					<div>
+						<label className="block text-sm font-medium mb-1">{t('preferred_address')}</label>
+						<Input
+							value={preferredAddress}
+							onChange={e => setPreferredAddress(e.target.value)}
+							placeholder={t('preferred_address_placeholder')}
+						/>
+						<p className="text-xs text-gray-400 mt-1">{t('preferred_address_hint')}</p>
 					</div>
 					<div className="flex items-center gap-2 mt-2">
 						<input

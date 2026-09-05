@@ -6,6 +6,7 @@ import (
 	"freegfw/services"
 	"freegfw/utils"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 
@@ -225,6 +226,17 @@ h1 { font-size: 1.5rem; margin-bottom: 2rem; color: #1a1a1a; font-weight: 700; }
 	var localIP string
 	json.Unmarshal(ipS.Value, &localIP)
 
+	// 绑定域名（如 Cloudflare 接入域名）与优选地址
+	var bdS models.Setting
+	database.DB.Where("key = ?", "bind_domain").Limit(1).Find(&bdS)
+	var bindDomain string
+	json.Unmarshal(bdS.Value, &bindDomain)
+
+	var paS models.Setting
+	database.DB.Where("key = ?", "preferred_address").Limit(1).Find(&paS)
+	var preferredAddr string
+	json.Unmarshal(paS.Value, &preferredAddr)
+
 	var tS models.Setting
 	database.DB.Where("key = ?", "title").Limit(1).Find(&tS)
 	title := "FreeGFW"
@@ -241,11 +253,20 @@ h1 { font-size: 1.5rem; margin-bottom: 2rem; color: #1a1a1a; font-weight: 700; }
 		localIP = host
 	}
 
+	// 客户端连接地址：优选地址 > 绑定域名 > 服务器公网IP > 请求Host
+	connectAddr := preferredAddr
+	if connectAddr == "" {
+		connectAddr = bindDomain
+	}
+	if connectAddr == "" {
+		connectAddr = localIP
+	}
+
 	var links []string
 	var clashProxies []map[string]interface{}
 	isClash := strings.Contains(strings.ToLower(c.GetHeader("User-Agent")), "clash")
 
-	generateLink := func(server map[string]interface{}, ip, titleAlias string) string {
+	generateLink := func(server map[string]interface{}, ip, bindDomain, titleAlias string) string {
 		if server == nil {
 			return ""
 		}
@@ -259,7 +280,7 @@ h1 { font-size: 1.5rem; margin-bottom: 2rem; color: #1a1a1a; font-weight: 700; }
 		}
 
 		if isClash {
-			if p := utils.ToClashProxy(server, ip, port, uuid, titleAlias); p != nil {
+			if p := utils.ToClashProxy(server, ip, port, uuid, titleAlias, bindDomain); p != nil {
 				clashProxies = append(clashProxies, p)
 			}
 		}
@@ -273,10 +294,6 @@ h1 { font-size: 1.5rem; margin-bottom: 2rem; color: #1a1a1a; font-weight: 700; }
 
 		if tlsConfig != nil && tlsConfig["enabled"] == true {
 			isTLS = true
-			serverName, _ = tlsConfig["server_name"].(string)
-			if serverName == "" {
-				serverName = ip
-			}
 
 			if reality, ok := tlsConfig["reality"].(map[string]interface{}); ok {
 				if rEnabled, ok := reality["enabled"].(bool); ok && rEnabled {
@@ -297,6 +314,19 @@ h1 { font-size: 1.5rem; margin-bottom: 2rem; color: #1a1a1a; font-weight: 700; }
 							realitySid = sid
 						}
 					}
+				}
+			}
+
+			serverName, _ = tlsConfig["server_name"].(string)
+			if bindDomain != "" && !isReality {
+				// 绑定域名接入（如 Cloudflare）：SNI 使用绑定域名（Reality 伪装域名除外）
+				serverName = bindDomain
+			} else if serverName == "" || net.ParseIP(serverName) != nil {
+				// server_name 为空或为 IP（未配置证书域名时的回退值）时回退
+				if bindDomain != "" {
+					serverName = bindDomain
+				} else if serverName == "" {
+					serverName = ip
 				}
 			}
 		}
@@ -328,13 +358,18 @@ h1 { font-size: 1.5rem; margin-bottom: 2rem; color: #1a1a1a; font-weight: 700; }
 			}
 		}
 
+		// CDN 接入时 WS/xhttp 的 Host 头需要是绑定域名
+		if host == "" && bindDomain != "" {
+			host = bindDomain
+		}
+
 		var link string
 		switch serverType {
 		case "vmess":
 			v := map[string]interface{}{
 				"v":    "2",
 				"ps":   titleAlias,
-				"add":  ip,
+				"add":  hostname,
 				"port": port,
 				"id":   uuid,
 				"aid":  "0",
@@ -434,7 +469,7 @@ h1 { font-size: 1.5rem; margin-bottom: 2rem; color: #1a1a1a; font-weight: 700; }
 
 	// Add local node if configured
 	if localServer != nil {
-		if l := generateLink(localServer, localIP, title); l != "" {
+		if l := generateLink(localServer, connectAddr, bindDomain, title); l != "" {
 			links = append(links, l)
 		}
 	}
@@ -462,7 +497,7 @@ h1 { font-size: 1.5rem; margin-bottom: 2rem; color: #1a1a1a; font-weight: 700; }
 				}
 			}
 
-			if l := generateLink(remoteServer, ip, itemTitle); l != "" {
+			if l := generateLink(remoteServer, ip, "", itemTitle); l != "" {
 				links = append(links, l)
 			}
 		}

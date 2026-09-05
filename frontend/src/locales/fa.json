@@ -87,5 +87,11 @@
   "encrypt_my_connection": "رمزگذاری اتصال من",
   "confirm_skip": "تایید رد کردن",
   "config_failed_check_logs": "پیکربندی ناموفق بود، لطفاً بررسی کنید که آیا وضوح دامنه صحیح است یا خیر، یا لاگ‌های سرور را بررسی کنید.",
-  "enable_cloudflare_warp": "فعال سازی Cloudflare WARP"
+  "enable_cloudflare_warp": "فعال سازی Cloudflare WARP",
+  "bind_domain": "دامنه متصل",
+  "bind_domain_placeholder": "مثلاً panel.example.com",
+  "bind_domain_hint": "لینک‌های اشتراک از این دامنه به عنوان آدرس نود و SNI استفاده می‌کنند. با ابر نارنجی کلادفلر، پورت ورودی باید یکی از پورت‌های پشتیبانی‌شده مانند 443 باشد؛ با ابر خاکستری اتصال مستقیم به سرور برقرار می‌شود.",
+  "preferred_address": "آدرس ترجیحی (اختیاری)",
+  "preferred_address_placeholder": "آی‌پی یا دامنه ترجیحی، خالی بگذارید تا از دامنه متصل استفاده شود",
+  "preferred_address_hint": "فقط آدرس اتصال کلاینت را جایگزین می‌کند؛ SNI همچنان از دامنه متصل استفاده می‌کند."
 }

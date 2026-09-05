@@ -5,7 +5,9 @@ import (
 	"freegfw/database"
 	"freegfw/models"
 	"freegfw/services"
+	"net"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -58,16 +60,32 @@ func GetConfigs(c *gin.Context) {
 		json.Unmarshal(warpEnabledSettings.Value, &warpEnabled)
 	}
 
+	var bindDomainSettings models.Setting
+	database.DB.Where("key = ?", "bind_domain").Limit(1).Find(&bindDomainSettings)
+	var bindDomain string
+	if len(bindDomainSettings.Value) > 0 {
+		json.Unmarshal(bindDomainSettings.Value, &bindDomain)
+	}
+
+	var preferredAddrSettings models.Setting
+	database.DB.Where("key = ?", "preferred_address").Limit(1).Find(&preferredAddrSettings)
+	var preferredAddress string
+	if len(preferredAddrSettings.Value) > 0 {
+		json.Unmarshal(preferredAddrSettings.Value, &preferredAddress)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"server":       serverObj,
-		"title":        title,
-		"inited":       len(serverSettings.Value) > 0,
-		"running":      core.IsRunning(),
-		"ip":           ip,
-		"ipv6":         ipv6,
-		"has_password": hasPassword,
-		"ssl":          ssl,
-		"warp_enabled": warpEnabled,
+		"server":            serverObj,
+		"title":             title,
+		"inited":            len(serverSettings.Value) > 0,
+		"running":           core.IsRunning(),
+		"ip":                ip,
+		"ipv6":              ipv6,
+		"has_password":      hasPassword,
+		"ssl":               ssl,
+		"warp_enabled":      warpEnabled,
+		"bind_domain":       bindDomain,
+		"preferred_address": preferredAddress,
 	})
 }
 
@@ -78,9 +96,14 @@ func UpdateConfig(c *gin.Context) {
 		return
 	}
 
-	allowed := []string{"username", "password", "title", "warp_enabled"}
+	allowed := []string{"username", "password", "title", "warp_enabled", "bind_domain", "preferred_address"}
 	for _, key := range allowed {
 		if val, ok := payload[key]; ok {
+			if key == "bind_domain" || key == "preferred_address" {
+				if vs, isStr := val.(string); isStr {
+					val = normalizeHost(vs)
+				}
+			}
 			jsonVal, _ := json.Marshal(val) // Handle null/empty logic
 			var s models.Setting
 			if database.DB.Where("key = ?", key).Limit(1).Find(&s).RowsAffected == 0 {
@@ -96,6 +119,19 @@ func UpdateConfig(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// normalizeHost 清理用户输入的域名/地址：去掉协议、路径、查询串和端口
+func normalizeHost(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.TrimPrefix(strings.TrimPrefix(s, "https://"), "http://")
+	if i := strings.IndexAny(s, "/?#"); i >= 0 {
+		s = s[:i]
+	}
+	if h, _, err := net.SplitHostPort(s); err == nil {
+		s = h
+	}
+	return s
 }
 
 func ReloadConfig(c *gin.Context) {
