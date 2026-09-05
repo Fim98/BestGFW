@@ -472,6 +472,14 @@ h1 { font-size: 1.5rem; margin-bottom: 2rem; color: #1a1a1a; font-weight: 700; }
 		if l := generateLink(localServer, connectAddr, bindDomain, title); l != "" {
 			links = append(links, l)
 		}
+
+		// 链式出站节点：客户端连本站入口，流量从绑定的远端节点出去
+		if chainLink := services.GetChainLink(); chainLink != nil && services.ChainOutbound() != nil {
+			chainTitle := fmt.Sprintf("%s → %s", title, services.ChainRemoteName(chainLink))
+			if l := generateLink(localServer, connectAddr, bindDomain, chainTitle); l != "" {
+				links = append(links, l)
+			}
+		}
 	}
 
 	// Fetch remote links

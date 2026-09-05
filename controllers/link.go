@@ -224,6 +224,25 @@ func getHandshakeData() gin.H {
 	var server interface{}
 	json.Unmarshal(serverSetting.Value, &server)
 
+	// 补充 TLS server_name：存储的 server 配置里该字段可能为空（BuildServerTLS
+	// 只在生成核心配置时注入），对端生成订阅/链式出站时需要正确的 SNI
+	if serverMap, ok := server.(map[string]interface{}); ok {
+		var tplName string
+		var tplSetting models.Setting
+		database.DB.Where("key = ?", "template").Limit(1).Find(&tplSetting)
+		json.Unmarshal(tplSetting.Value, &tplName)
+		if tlsCfg, err := services.BuildServerTLS(tplName); err == nil && tlsCfg != nil {
+			if name, ok := tlsCfg["server_name"].(string); ok && name != "" {
+				if smTLS, ok := serverMap["tls"].(map[string]interface{}); ok {
+					if cur, _ := smTLS["server_name"].(string); cur == "" {
+						smTLS["server_name"] = name
+					}
+				}
+			}
+		}
+		server = serverMap
+	}
+
 	var users []models.User
 	database.DB.Find(&users)
 	var uuids []string

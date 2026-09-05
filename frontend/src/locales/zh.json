@@ -95,5 +95,8 @@
   "bind_domain_hint": "订阅将使用该域名作为节点连接地址与 SNI。黄云（开启 CF 代理）时请把入站端口设为 Cloudflare 支持的端口（如 443）；灰云（仅 DNS）则直连源站。",
   "preferred_address": "优选地址（可选）",
   "preferred_address_placeholder": "优选 IP 或优选域名，留空则使用绑定域名",
-  "preferred_address_hint": "仅替换客户端连接地址，SNI 与伪装域名仍使用绑定域名。"
+  "preferred_address_hint": "仅替换客户端连接地址，SNI 与伪装域名仍使用绑定域名。",
+  "chain_set_outbound": "设为出站",
+  "chain_outbound": "出站",
+  "chain_outbound_desc": "把某个已连接的节点设为出站后，订阅会自动多出一个「本站 → 该节点」的链式节点：客户端连本站入口，流量从该节点出去。"
 }

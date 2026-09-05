@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { useGetLinks, useCreateLink, useSwapLink, useDeleteLink } from "../apis/link"
+import { useGetConfigs, useUpdateConfigs, useReloadConfigs } from "../apis/config"
 import { Button } from "@/components/ui/button"
-import { IoAddCircleOutline, IoLink, IoUnlink } from "react-icons/io5"
+import { IoAddCircleOutline, IoLink, IoUnlink, IoExitOutline } from "react-icons/io5"
 import { Input } from "@/components/ui/input"
 import { PiSpinner } from "react-icons/pi"
 import { Form } from "@/components/ui/form"
@@ -12,6 +13,9 @@ export function LinkManageCard() {
     const { data: links, loading: linksLoading, loaded: linksLoaded, refresh: refreshLinks } = useGetLinks()
     const { trigger: createLink, loading: createLinkLoading } = useCreateLink()
     const { trigger: swapLink, loading: swapLinkLoading } = useSwapLink()
+    const { data: config, refresh: refreshConfig } = useGetConfigs()
+    const { trigger: updateConfigs, loading: updatingChain } = useUpdateConfigs()
+    const { trigger: reloadConfigs } = useReloadConfigs()
 
     const [open, setOpen] = useState(false)
     const [inviteLink, setInviteLink] = useState('')
@@ -21,6 +25,16 @@ export function LinkManageCard() {
 
     const [error, setError] = useState(null)
     const { t } = useLanguageStore()
+
+    const chainLinkId = config?.chain_link_id ?? null
+
+    const handleToggleChain = async (link) => {
+        const next = chainLinkId === link.id ? null : link.id
+        await updateConfigs({ chain_link_id: next })
+        await reloadConfigs()
+        await refreshConfig()
+        await refreshLinks()
+    }
 
     const handleCreateLink = async () => {
         const res = await createLink()
@@ -47,6 +61,7 @@ export function LinkManageCard() {
                 <div>
                     <div className='text-md'>{t('connect_other_freegfw')}</div>
                     <div className='text-xs opacity-50'>{t('manage_links_desc')}</div>
+                    <div className='text-xs opacity-50 mt-0.5'>{t('chain_outbound_desc')}</div>
                 </div>
                 <div className='flex items-center gap-2 mt-4 md:mt-0'>
                     <Input className='h-8' placeholder={t('search_links')} />
@@ -127,6 +142,9 @@ export function LinkManageCard() {
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-medium text-gray-900">{title || ip}</span>
                                                     {title && <span className="text-gray-400 text-xs">({ip})</span>}
+                                                    {chainLinkId === link.id && (
+                                                        <span className="text-xs text-white bg-blue-500 rounded px-1.5 py-0.5 whitespace-nowrap">{t('chain_outbound')}</span>
+                                                    )}
                                                 </div>
                                                 {link.lastSyncAt && (
                                                     <div className="text-xs text-gray-400 mt-0.5" dir="ltr">
@@ -139,6 +157,17 @@ export function LinkManageCard() {
                                 </div>
                             </div>
                             <div className="flex gap-2">
+                                {link.lastSyncStatus === 'success' && (
+                                    <Button
+                                        size='sm'
+                                        variant={chainLinkId === link.id ? 'default' : 'outline'}
+                                        className='cursor-pointer whitespace-nowrap'
+                                        disabled={updatingChain}
+                                        onClick={() => handleToggleChain(link)}
+                                    >
+                                        {chainLinkId === link.id ? <>{t('chain_outbound')} <IoExitOutline /></> : t('chain_set_outbound')}
+                                    </Button>
+                                )}
                                 <Button size='sm' variant='destructive' className='cursor-pointer' onClick={() => setPreDeleteLink(link)}><IoUnlink /></Button>
                             </div>
                         </div>

@@ -13,8 +13,6 @@ import (
 	xray_core "github.com/xtls/xray-core/core"
 )
 
-
-
 func (c *CoreService) refreshXray(server map[string]interface{}, templateName string) error {
 	users, _ := BuildUsers(templateName)
 	// Singbox users: uuid, flow. Xray users: id, flow.
@@ -200,16 +198,20 @@ func (c *CoreService) refreshXray(server map[string]interface{}, templateName st
 	outbounds := []interface{}{}
 	var warpEnabledSetting models.Setting
 	database.DB.Where("key = ?", "warp_enabled").Limit(1).Find(&warpEnabledSetting)
-	
+
 	warpEnabled := false
 	if len(warpEnabledSetting.Value) > 0 {
 		json.Unmarshal(warpEnabledSetting.Value, &warpEnabled)
 	}
 
-	if warpEnabled {
+	// 链式出站：绑定了远端节点时作为默认出口，优先级高于 WARP
+	if chainOb := ChainOutbound(); chainOb != nil {
+		log.Println("[Chain] inbound traffic will exit via chained node")
+		outbounds = append(outbounds, chainOb, map[string]interface{}{"protocol": "freedom"})
+	} else if warpEnabled {
 		var warpAccountSetting models.Setting
 		var warpAccount *WarpAccount
-		
+
 		database.DB.Where("key = ?", "warp_account").Limit(1).Find(&warpAccountSetting)
 		if len(warpAccountSetting.Value) > 0 {
 			var acc WarpAccount

@@ -65,7 +65,7 @@ func (c *CoreService) refreshSingbox(server map[string]interface{}, templateName
 	// Set timeouts to prevent Goroutine leaks
 	server["tcp_fast_open"] = true
 	server["udp_timeout"] = "5m"
-	
+
 	server["users"] = users
 	if tls != nil {
 		if serverTls, ok := server["tls"].(map[string]interface{}); ok {
@@ -78,16 +78,20 @@ func (c *CoreService) refreshSingbox(server map[string]interface{}, templateName
 	outbounds := []map[string]interface{}{}
 	var warpEnabledSetting models.Setting
 	database.DB.Where("key = ?", "warp_enabled").Limit(1).Find(&warpEnabledSetting)
-	
+
 	warpEnabled := false
 	if len(warpEnabledSetting.Value) > 0 {
 		json.Unmarshal(warpEnabledSetting.Value, &warpEnabled)
 	}
 
-	if warpEnabled {
+	// 链式出站：绑定了远端节点时作为默认出口，优先级高于 WARP
+	if chainOb := ChainOutbound(); chainOb != nil {
+		log.Println("[Chain] inbound traffic will exit via chained node")
+		outbounds = append(outbounds, chainOb, map[string]interface{}{"type": "direct", "tag": "direct"})
+	} else if warpEnabled {
 		var warpAccountSetting models.Setting
 		var warpAccount *WarpAccount
-		
+
 		database.DB.Where("key = ?", "warp_account").Limit(1).Find(&warpAccountSetting)
 		if len(warpAccountSetting.Value) > 0 {
 			var acc WarpAccount
@@ -117,15 +121,15 @@ func (c *CoreService) refreshSingbox(server map[string]interface{}, templateName
 
 		if warpAccount != nil && warpAccount.PrivateKey != "" {
 			outbounds = append(outbounds, map[string]interface{}{
-				"type": "wireguard",
-				"tag": "direct", // keep tag direct because inbounds route to "direct"
-				"server": "engage.cloudflareclient.com",
-				"server_port": 2408,
-				"local_address": []string{warpAccount.LocalAddressV4, warpAccount.LocalAddressV6},
-				"private_key": warpAccount.PrivateKey,
+				"type":            "wireguard",
+				"tag":             "direct", // keep tag direct because inbounds route to "direct"
+				"server":          "engage.cloudflareclient.com",
+				"server_port":     2408,
+				"local_address":   []string{warpAccount.LocalAddressV4, warpAccount.LocalAddressV6},
+				"private_key":     warpAccount.PrivateKey,
 				"peer_public_key": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=", // Default WARP peer public key
-				"reserved": warpAccount.Reserved,
-				"mtu": 1280,
+				"reserved":        warpAccount.Reserved,
+				"mtu":             1280,
 				"domain_strategy": "prefer_ipv4",
 			})
 		}
@@ -135,7 +139,7 @@ func (c *CoreService) refreshSingbox(server map[string]interface{}, templateName
 	}
 
 	config := map[string]interface{}{
-		"inbounds": []map[string]interface{}{server},
+		"inbounds":  []map[string]interface{}{server},
 		"outbounds": outbounds,
 		"experimental": map[string]interface{}{
 			"clash_api": map[string]interface{}{
@@ -155,8 +159,6 @@ func (c *CoreService) refreshSingbox(server map[string]interface{}, templateName
 }
 
 func monitorSingboxLoop() {
-
-
 
 	// Map connection ID to usage {Up, Down}
 	connStats := make(map[string]struct{ Up, Down uint64 })
