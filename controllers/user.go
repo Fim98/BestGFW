@@ -495,29 +495,35 @@ h1 { font-size: 1.5rem; margin-bottom: 2rem; color: #1a1a1a; font-weight: 700; }
 	// We only care about links that have successfully synced
 	database.DB.Where("last_sync_status = ?", "success").Find(&remoteLinks)
 
-	for _, rl := range remoteLinks {
-		var remoteServer map[string]interface{}
-		if err := json.Unmarshal(rl.Server, &remoteServer); err == nil {
-			ip := ""
-			if rl.IP != nil {
-				ip = *rl.IP
-			}
+		for _, rl := range remoteLinks {
+			var remoteServer map[string]interface{}
+			if err := json.Unmarshal(rl.Server, &remoteServer); err == nil {
+				ip := ""
+				if rl.IP != nil {
+					ip = *rl.IP
+				}
 
-			itemTitle := ""
-			if t, ok := remoteServer["title"].(string); ok && t != "" {
-				itemTitle = t
-			} else {
-				itemTitle = title
-				if ip != "" && ip != localIP {
-					itemTitle = fmt.Sprintf("%s (%s)", title, ip)
+				// 远端发布的客户端连接地址（优选地址/绑定域名）优先，其次远端 IP
+				connectAddr := ip
+				if ca, ok := remoteServer["client_address"].(string); ok && ca != "" {
+					connectAddr = ca
+				}
+
+				itemTitle := ""
+				if t, ok := remoteServer["title"].(string); ok && t != "" {
+					itemTitle = t
+				} else {
+					itemTitle = title
+					if ip != "" && ip != localIP {
+						itemTitle = fmt.Sprintf("%s (%s)", title, ip)
+					}
+				}
+
+				if l := generateLink(remoteServer, connectAddr, "", itemTitle); l != "" {
+					links = append(links, l)
 				}
 			}
-
-			if l := generateLink(remoteServer, ip, "", itemTitle); l != "" {
-				links = append(links, l)
-			}
 		}
-	}
 
 	if isClash {
 		clashConfig := utils.GenClashConfig(clashProxies)

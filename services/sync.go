@@ -114,6 +114,7 @@ func syncOneLink(link *models.Link) (changed bool) {
 		Title   string          `json:"title"`
 		Users   json.RawMessage `json:"users"`
 		IP      string          `json:"ip"`
+		Address string          `json:"address"`
 		Error   string          `json:"message"`
 	}
 
@@ -154,8 +155,14 @@ func syncOneLink(link *models.Link) (changed bool) {
 	}
 	if data.Title != "" {
 		serverMap["title"] = data.Title
-		serverBytes, _ = json.Marshal(serverMap)
 	}
+	// 远端发布的客户端连接地址（优选地址/绑定域名），订阅生成时优先使用
+	if data.Address != "" {
+		serverMap["client_address"] = data.Address
+	} else {
+		delete(serverMap, "client_address")
+	}
+	serverBytes, _ = json.Marshal(serverMap)
 
 	usersBytes, _ := data.Users.MarshalJSON()
 

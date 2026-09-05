@@ -105,6 +105,11 @@ func SwapLink(c *gin.Context) {
 				l.Name = &t
 			}
 
+			// 远端发布的客户端连接地址（优选地址/绑定域名）
+			if addr, ok := res["address"].(string); ok && addr != "" {
+				serverMap["client_address"] = addr
+			}
+
 			if len(serverMap) > 0 {
 				serverBytes, _ := json.Marshal(serverMap)
 				l.Server = models.JSON(serverBytes)
@@ -263,6 +268,19 @@ func getHandshakeData() gin.H {
 		json.Unmarshal(titleSetting.Value, &title)
 	}
 	data["title"] = title
+
+	// 发布本站的客户端连接地址（优选地址 > 绑定域名），对端订阅远端节点时优先使用；
+	// 为空则对端回退为本站 IP
+	var clientAddr string
+	var paSetting models.Setting
+	database.DB.Where("key = ?", "preferred_address").Limit(1).Find(&paSetting)
+	json.Unmarshal(paSetting.Value, &clientAddr)
+	if clientAddr == "" {
+		var bdSetting models.Setting
+		database.DB.Where("key = ?", "bind_domain").Limit(1).Find(&bdSetting)
+		json.Unmarshal(bdSetting.Value, &clientAddr)
+	}
+	data["address"] = clientAddr
 
 	dataBytes, _ := json.Marshal(data)
 	h := sha1.New()

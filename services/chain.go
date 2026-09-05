@@ -74,8 +74,14 @@ func ChainOutbound() map[string]interface{} {
 	if uuid == "" {
 		return nil
 	}
+	// 拨号地址：优先远端发布的客户端连接地址（域名，兼容源站仅允许 CDN 访问的场景），其次远端 IP
 	host := ""
-	if link.IP != nil {
+	if server != nil {
+		if ca, ok := server["client_address"].(string); ok {
+			host = ca
+		}
+	}
+	if host == "" && link.IP != nil {
 		host = *link.IP
 	}
 	if host == "" {
